@@ -32,7 +32,8 @@
 
 ## 环境要求
 
-客户端编译：Windows系统 + Visual C++ 2022 (需要安装MFC支持)
+客户端编译：Windows系统 + Visual C++ 2022 （需要安装MFC支持）
+
 服务端操作系统：
 * CentOS 7.x
 * Enterprise Linux 8+ (CentOS Stream、Alma Linux、Rocky Linux等)
