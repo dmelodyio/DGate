@@ -1,0 +1,18 @@
+#!/bin/bash
+# =============================================================================
+# DGate 后台服务启动脚本（systemd 封装）
+# 安装位置：/usr/local/sbin/dgate-start
+# 由 install-rhel8.sh / install-centos7.sh 安装；dgate- 前缀与游戏端
+# /root/run、/root/stop 命名零冲突
+# =============================================================================
+set -u
+SERVICE=dgate.service
+
+echo "[dgate-start] 启动 ${SERVICE} ..."
+if systemctl start "${SERVICE}"; then
+    echo "[dgate-start] ${SERVICE} 已启动（dgate-status 查看状态）"
+    exit 0
+fi
+echo "[dgate-start] 启动失败，最近 20 行日志：" >&2
+journalctl -u "${SERVICE}" -n 20 --no-pager >&2 2>/dev/null || true
+exit 1

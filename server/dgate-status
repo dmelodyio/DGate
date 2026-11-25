@@ -1,0 +1,10 @@
+#!/bin/bash
+# =============================================================================
+# DGate 后台服务状态脚本（systemd 封装）
+# 安装位置：/usr/local/sbin/dgate-status
+# =============================================================================
+set -u
+SERVICE=dgate.service
+
+systemctl status "${SERVICE}" --no-pager
+exit $?

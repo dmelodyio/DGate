@@ -1,0 +1,16 @@
+#!/bin/bash
+# =============================================================================
+# DGate 后台服务重启脚本（systemd 封装）
+# 安装位置：/usr/local/sbin/dgate-restart
+# =============================================================================
+set -u
+SERVICE=dgate.service
+
+echo "[dgate-restart] 重启 ${SERVICE} ..."
+if systemctl restart "${SERVICE}"; then
+    echo "[dgate-restart] ${SERVICE} 已重启（dgate-status 查看状态）"
+    exit 0
+fi
+echo "[dgate-restart] 重启失败，最近 20 行日志：" >&2
+journalctl -u "${SERVICE}" -n 20 --no-pager >&2 2>/dev/null || true
+exit 1

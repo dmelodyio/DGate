@@ -1,0 +1,12 @@
+[server]
+; DGate 服务端地址（IP/域名 + 端口），支持 http:// 与 https://
+url=http://127.0.0.1:5000
+
+[update]
+; 本地客户端版本号（游戏升级自动维护，勿手动修改）
+version=1
+
+[inject]
+; 注入清单：逗号分隔，相对启动器所在目录，按给定顺序注入；留空则不注入任何 DLL
+; 示例：dlls=ijl15.dll,Plugins\aaa.dll
+dlls=

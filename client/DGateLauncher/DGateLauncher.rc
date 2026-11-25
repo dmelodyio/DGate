@@ -1,0 +1,87 @@
+﻿// Microsoft Visual C++ 生成的资源脚本。
+#pragma code_page(65001)
+
+#include "afxres.h"
+#include "resource.h"
+
+/////////////////////////////////////////////////////////////////////////////
+// 主登录对话框
+// 无边框深色主题：标题条与输入框边框均为自绘（见 Theme.cpp）。
+// 注意：不能写 CAPTION 语句——RC 编译器会据此强制注入 WS_CAPTION；
+// 窗口文本（"DGate 登录器"，供 FindWindow/任务栏/e2e 使用）由
+// CThemeDialog::OnInitDialog 运行时 SetWindowTextW 设置。
+
+IDD_LOGIN DIALOGEX 0, 0, 162, 119
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "",IDC_STATIC_SERVERINFO,14,22,134,8
+    LTEXT           "账号",IDC_STATIC,14,39,32,8
+    EDITTEXT        IDC_EDIT_USER,50,36,98,14,ES_AUTOHSCROLL | NOT WS_BORDER
+    LTEXT           "密码",IDC_STATIC,14,61,32,8
+    EDITTEXT        IDC_EDIT_PASS,50,58,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    CONTROL         "保存用户名和密码",IDC_CHK_SAVE,"Button",BS_OWNERDRAW | WS_CHILD | WS_VISIBLE | WS_TABSTOP,14,78,134,12
+    DEFPUSHBUTTON   "登 录",IDOK,14,97,42,16,BS_OWNERDRAW
+    PUSHBUTTON      "注 册",IDC_BTN_REGISTER,60,97,42,16,BS_OWNERDRAW
+    PUSHBUTTON      "修改密码",IDC_BTN_CHANGEPWD,106,97,42,16,BS_OWNERDRAW
+END
+
+/////////////////////////////////////////////////////////////////////////////
+// 注册对话框
+
+IDD_REGISTER DIALOGEX 0, 0, 162, 111
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_SYSMENU
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "账号",IDC_STATIC,14,27,32,8
+    EDITTEXT        IDC_EDIT_USER,50,24,98,14,ES_AUTOHSCROLL | NOT WS_BORDER
+    LTEXT           "密码",IDC_STATIC,14,49,32,8
+    EDITTEXT        IDC_EDIT_PASS,50,46,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    LTEXT           "确认密码",IDC_STATIC,14,71,32,8
+    EDITTEXT        IDC_EDIT_PASS2,50,68,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    DEFPUSHBUTTON   "注册",IDOK,14,90,42,16,BS_OWNERDRAW
+    PUSHBUTTON      "取消",IDCANCEL,60,90,42,16,BS_OWNERDRAW
+END
+
+/////////////////////////////////////////////////////////////////////////////
+// 修改密码对话框
+
+IDD_CHANGEPWD DIALOGEX 0, 0, 162, 133
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_SYSMENU
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+    LTEXT           "账号",IDC_STATIC,14,27,32,8
+    EDITTEXT        IDC_EDIT_USER,50,24,98,14,ES_AUTOHSCROLL | NOT WS_BORDER
+    LTEXT           "旧密码",IDC_STATIC,14,49,32,8
+    EDITTEXT        IDC_EDIT_OLDPASS,50,46,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    LTEXT           "新密码",IDC_STATIC,14,71,32,8
+    EDITTEXT        IDC_EDIT_NEWPASS,50,68,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    LTEXT           "确认密码",IDC_STATIC,14,93,32,8
+    EDITTEXT        IDC_EDIT_NEWPASS2,50,90,98,14,ES_AUTOHSCROLL | ES_PASSWORD | NOT WS_BORDER
+    DEFPUSHBUTTON   "确定修改",IDOK,14,112,42,16,BS_OWNERDRAW
+    PUSHBUTTON      "取消",IDCANCEL,60,112,42,16,BS_OWNERDRAW
+END
+
+/////////////////////////////////////////////////////////////////////////////
+// 游戏更新进度对话框
+// 无边框深色主题：进度条与文字全部由 CUpdateDialog::OnPaint 自绘，
+// 无子控件；无关闭钮（更新不可中断，HasCloseButton 返回 false）。
+// 窗口文本 "DGate 更新" 供 FindWindow/任务栏使用。
+
+IDD_UPDATE DIALOGEX 0, 0, 200, 62
+STYLE DS_SETFONT | DS_CENTER | WS_POPUP | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+FONT 9, "Microsoft YaHei UI", 400, 0, 0x1
+BEGIN
+END
+
+/////////////////////////////////////////////////////////////////////////////
+// 图标（后台品牌风格：深蓝渐变圆角方底 + 金色 D）
+
+IDI_APPICON ICON "DGateLauncher.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+// Manifest（DPI 感知 + 公共控件 v6）
+
+1 24 "DGateLauncher.manifest"

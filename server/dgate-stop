@@ -1,0 +1,16 @@
+#!/bin/bash
+# =============================================================================
+# DGate 后台服务停止脚本（systemd 封装）
+# 安装位置：/usr/local/sbin/dgate-stop
+# =============================================================================
+set -u
+SERVICE=dgate.service
+
+echo "[dgate-stop] 停止 ${SERVICE} ..."
+if systemctl stop "${SERVICE}"; then
+    echo "[dgate-stop] ${SERVICE} 已停止"
+    exit 0
+fi
+echo "[dgate-stop] 停止失败，最近 20 行日志：" >&2
+journalctl -u "${SERVICE}" -n 20 --no-pager >&2 2>/dev/null || true
+exit 1

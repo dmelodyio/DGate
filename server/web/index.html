@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>DGate 管理后台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 登录视图 -->
+    <div v-if="view === 'login'" class="login-wrap">
+      <form class="login-card" @submit.prevent="doLogin">
+        <div class="login-logo">D<span>GATE</span></div>
+        <div class="login-sub">动作游戏后台管理系统</div>
+        <input type="text" v-model.trim="loginUsername" placeholder="管理员账号"
+               autocomplete="username" autofocus :disabled="loginBusy">
+        <input type="password" v-model="loginPassword" placeholder="密码"
+               autocomplete="current-password" :disabled="loginBusy">
+        <button type="submit" :disabled="loginBusy || !loginUsername || !loginPassword">
+          {{ loginBusy ? '验证中…' : '登 录' }}
+        </button>
+        <div class="login-error" v-if="loginError">{{ loginError }}</div>
+      </form>
+    </div>
+
+    <!-- 主视图：左侧菜单 Dashboard（响应式：≥1024 常驻 / 768~1023 图标窄栏 / <768 抽屉） -->
+    <div v-else class="layout">
+      <div class="sidebar-mask" v-if="sidebarOpen" @click="sidebarOpen = false"></div>
+      <aside class="sidebar" :class="{open: sidebarOpen}">
+        <div class="brand">
+          <div class="brand-logo">D<span>GATE</span></div>
+          <div class="brand-sub">动作游戏后台管理系统</div>
+        </div>
+        <nav class="menu">
+          <button :class="{active: tab === 'server'}" @click="switchTab('server')" title="游戏服务">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+              <line x1="12" y1="2" x2="12" y2="12"/>
+            </svg><span>游戏服务</span>
+          </button>
+          <button :class="{active: tab === 'users'}" @click="switchTab('users')" title="用户管理">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg><span>用户管理</span>
+          </button>
+          <button :class="{active: tab === 'mail'}" @click="switchTab('mail')" title="邮件发送">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg><span>邮件发送</span>
+          </button>
+          <button :class="{active: tab === 'audit'}" @click="switchTab('audit')" title="审计信息">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg><span>审计信息</span>
+          </button>
+          <button v-if="sessionInfo.is_super" :class="{active: tab === 'admins'}" @click="switchTab('admins')" title="管理员配置">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg><span>管理员配置</span>
+          </button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-user" v-if="sessionInfo.username">
+            <span class="mono">{{ sessionInfo.username }}</span>
+            <span v-if="sessionInfo.is_super" class="tag admin">超管</span>
+          </div>
+          <button class="menu-item pwd-entry" @click="openPwdToast" title="修改密码">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg><span>修改密码</span>
+          </button>
+          <button class="menu-item logout" @click="doLogout" title="退出登录">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg><span>退出登录</span>
+          </button>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="page-head">
+          <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" aria-label="菜单">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div class="page-head-text">
+            <h2>{{ pageTitle }}</h2>
+            <p class="page-desc">{{ pageDesc }}</p>
+          </div>
+        </header>
+
+        <main class="content">
+        <!-- 用户管理 -->
+        <section v-if="tab === 'users'">
+          <div class="toolbar">
+            <input v-model.trim="userSearch" placeholder="按用户名或 UID 搜索"
+                   @keyup.enter="loadUsers(1)">
+            <button class="btn" @click="loadUsers(1)">搜索</button>
+            <button class="btn-ghost" @click="userSearch = ''; loadUsers(1)">重置</button>
+            <span class="toolbar-total" v-if="userTotal !== null">共 {{ userTotal }} 个账号</span>
+          </div>
+          <div class="card-grid user-grid">
+            <div v-if="userLoading" class="grid-empty">加载中…</div>
+            <div v-else-if="users.length === 0" class="grid-empty">暂无数据</div>
+            <div class="data-card user-card" v-for="u in users" :key="u.uid">
+              <div class="uc-head">
+                <span class="uc-uid mono">#{{ u.uid }}</span>
+                <span class="tag" :class="'user'">用户</span>
+              </div>
+              <div class="uc-name">{{ u.accountname }}</div>
+              <div class="uc-stats">
+                <div class="uc-stat">
+                  <span class="uc-stat-label">角色</span>
+                  <span class="uc-stat-value mono">{{ u.charac_count }}</span>
+                </div>
+                <div class="uc-stat">
+                  <span class="uc-stat-label">点券</span>
+                  <span class="uc-stat-value mono cera">{{ u.cera.toLocaleString() }}</span>
+                </div>
+              </div>
+              <div class="uc-actions">
+                <button class="btn" @click="openRecharge(u)">充值</button>
+                <button class="btn btn-warn" @click="openReset(u)">重置密码</button>
+                <button class="btn btn-del" v-if="!u.banned" @click="doBan(u, true)">封号</button>
+                <button class="btn btn-ok" v-else @click="doBan(u, false)">解封</button>
+              </div>
+            </div>
+          </div>
+          <pager :page="userPage" :page-size="userPageSize" :total="userTotal"
+                 @go="loadUsers($event)"></pager>
+        </section>
+
+        <!-- 审计信息 -->
+        <section v-if="tab === 'audit'">
+          <div class="toolbar">
+            <select v-model="auditAction" @change="loadAudit(1)">
+              <option value="">全部动作</option>
+              <option v-for="a in auditActions" :key="a" :value="a">{{ actionLabel(a) }}</option>
+            </select>
+            <span class="toolbar-total" v-if="auditTotal !== null">共 {{ auditTotal }} 条记录</span>
+            <button class="btn-ghost toolbar-right" @click="loadAudit(auditPage)">刷新</button>
+          </div>
+          <div class="card-grid audit-grid">
+            <div v-if="auditLoading" class="grid-empty">加载中…</div>
+            <div v-else-if="auditItems.length === 0" class="grid-empty">暂无数据</div>
+            <div class="data-card audit-card" v-for="a in auditItems" :key="a.id">
+              <div class="ac-top">
+                <span class="tag action">{{ actionLabel(a.action) }}</span>
+                <span class="tag" :class="a.actor_type">{{ a.actor_type === 'admin' ? '后台' : '用户' }}</span>
+                <span class="ac-uid mono" v-if="a.uid">UID {{ a.uid }}</span>
+              </div>
+              <div class="ac-actor">{{ a.actor }}</div>
+              <div class="ac-detail">{{ a.detail || '-' }}</div>
+              <div class="ac-foot mono">
+                <span>{{ a.ts }}</span>
+                <span>{{ a.ip }}</span>
+              </div>
+            </div>
+          </div>
+          <pager :page="auditPage" :page-size="auditPageSize" :total="auditTotal"
+                 @go="loadAudit($event)"></pager>
+        </section>
+
+        <!-- 邮件发送 -->
+        <section v-if="tab === 'mail'">
+          <div class="card-grid server-grid">
+            <div class="data-card mail-card">
+              <div class="uc-head">
+                <span class="sc-title">发送邮件</span>
+              </div>
+              <div class="mail-form">
+                <div class="mail-row mail-target">
+                  <label class="mail-radio">
+                    <input type="radio" value="single" v-model="mailMode"> 指定角色
+                  </label>
+                  <label class="mail-radio">
+                    <input type="radio" value="all" v-model="mailMode"> 全服所有角色
+                  </label>
+                  <div class="mail-charac" v-if="mailMode === 'single'">
+                    <input v-model.trim="mailCharacName" placeholder="输入角色名"
+                           @input="searchCharac($event)"
+                           @compositionend="searchCharac($event)"
+                           :disabled="mailBusy">
+                    <div class="mail-charac-list" v-if="characCandidates.length">
+                      <button v-for="c in characCandidates" :key="c.charac_no"
+                              class="mail-charac-item" @click="pickCharac(c)">
+                        {{ c.charac_name }} <span class="uc-uid mono">#{{ c.charac_no }}</span>
+                      </button>
+                    </div>
+                    <div class="mail-charac-picked mono" v-if="mailCharacNo">
+                      已选：{{ mailCharacName }}（#{{ mailCharacNo }}）
+                    </div>
+                  </div>
+                  <div class="mail-charac-picked" v-else-if="mailRecipients !== null">
+                    收件角色 {{ mailRecipients }} 个
+                  </div>
+                </div>
+                <div class="mail-row mail-split">
+                  <label class="mail-field">发件人
+                    <input v-model.trim="mailSender" maxlength="20" placeholder="系统">
+                  </label>
+                  <label class="mail-field">金币
+                    <input class="mono" v-model.trim="mailGold" inputmode="numeric"
+                           placeholder="0">
+                  </label>
+                </div>
+                <div class="mail-row">
+                  <label class="mail-field">正文
+                    <textarea v-model.trim="mailText" maxlength="255" rows="3"
+                              placeholder="邮件正文（最多 255 字符）"></textarea>
+                  </label>
+                </div>
+                <div class="mail-row">
+                  <label class="mail-field">附件（最多 10 种道具）
+                    <div class="mail-item-box">
+                      <input v-model.trim="mailItemSearch" placeholder="输入道具名称或 id 搜索"
+                             @input="filterMailItems" @focus="filterMailItems">
+                      <div class="mail-item-candidates" v-if="mailItemCandidates.length">
+                        <button v-for="it in mailItemCandidates" :key="it.id"
+                                class="mail-charac-item" @click="addMailItem(it)">
+                          {{ it.name || it.name_tc }} <span class="uc-uid mono">#{{ it.id }}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </label>
+                  <div class="mail-attach-list" v-if="mailAttach.length">
+                    <div class="mail-attach-item" v-for="(a, i) in mailAttach" :key="a.id">
+                      <span class="mail-attach-name">
+                        {{ a.name || a.name_tc }} <span class="uc-uid mono">#{{ a.id }}</span>
+                      </span>
+                      <input class="mono mail-attach-count" v-model.trim="a.count"
+                             inputmode="numeric" placeholder="数量">
+                      <button class="btn-ghost"
+                              @click="mailAttach.splice(i, 1)">移除</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="uc-actions auto">
+                <button class="btn" @click="doMailSend"
+                        :disabled="mailBusy || mailState.building">
+                  {{ mailBusy ? '发送中…' : (mailState.building ? '清单重建中…' : '发送邮件') }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 服务器控制（≥1024px 两栏：左宽=服务器开关/参数设置，右窄=游戏升级/认证密钥；
+             <1024px 单列按 DOM 顺序回流：开关→参数→升级→密钥） -->
+        <section v-if="tab === 'server'">
+          <div class="card-grid server-grid server-two-col">
+            <div class="server-col server-col-left">
+              <div class="data-card server-card">
+                <div class="uc-head">
+                  <span class="sc-title">服务器开关</span>
+                </div>
+                <div class="sc-status">
+                  <span class="dot" :class="serverStatus.running ? 'on' : 'off'"></span>
+                  <div class="sc-status-text">
+                    <template v-if="serverStatusLoading">检测中…</template>
+                    <template v-else-if="serverStatus.running">
+                      <b>运行中</b>
+                      <span class="mono sc-pids" v-if="serverStatus.mode === 'docker'
+                                                     && serverStatus.container_id">
+                        容器 ID: {{ serverStatus.container_id }}
+                      </span>
+                      <span class="mono sc-pids" v-else-if="serverStatus.pids && serverStatus.pids.length">
+                        df_game_r PID: {{ serverStatus.pids.join(', ') }}
+                      </span>
+                    </template>
+                    <template v-else><b>已停止</b></template>
+                  </div>
+                </div>
+                <div class="uc-actions auto">
+                  <button class="btn" @click="doServerStart"
+                          :disabled="serverBusy || serverStarting || mailState.building
+                                     || serverStatus.running">
+                    {{ serverBusy ? '处理中…'
+                       : (mailState.building ? '清单重建中…'
+                          : (serverStarting ? '启动中…' : '启动服务器')) }}
+                  </button>
+                  <button class="btn btn-danger" @click="doServerStop"
+                          :disabled="serverBusy || serverStarting || !serverStatus.running">
+                    {{ serverBusy ? '处理中…' : '停止服务器' }}
+                  </button>
+                  <button class="btn-ghost" @click="loadServerStatus" :disabled="serverBusy">
+                    刷新状态
+                  </button>
+                </div>
+              </div>
+
+              <div class="data-card param-card">
+                <div class="uc-head">
+                  <span class="sc-title">参数设置</span>
+                </div>
+                <div class="up-info">
+                  <div>新用户注册时赠送的点券数量（0 表示不赠送）</div>
+                </div>
+                <div class="param-form">
+                  <input class="mono" v-model.trim="settingsCera" inputmode="numeric"
+                         placeholder="例如 30000" aria-label="注册赠送点券"
+                         :disabled="settingsBusy">
+                </div>
+                <div class="up-info mono" v-if="settingsInfo && settingsInfo.updated_at">
+                  <div>上次修改：{{ settingsInfo.updated_at }}{{ settingsInfo.updated_by ? '（' + settingsInfo.updated_by + '）' : '' }}</div>
+                </div>
+                <div class="uc-actions auto">
+                  <button class="btn" @click="doSaveSettings" :disabled="settingsBusy">
+                    {{ settingsBusy ? '保存中…' : '保存设置' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="server-col server-col-right">
+              <div class="data-card up-card">
+                <div class="uc-head">
+                  <span class="sc-title">游戏升级</span>
+                </div>
+                <div class="up-info mono" v-if="upInfo">
+                  <div>基线版本 v{{ upInfo.baseline }} · 更新于 {{ upInfo.baseline_at || '—' }}</div>
+                  <div>当前版本 v{{ upInfo.current }} · 更新于 {{ upInfo.current_at || '—' }}</div>
+                  <div v-if="upInfo.zip_size">补丁包 {{ (upInfo.zip_size / 1048576).toFixed(1) }} MB</div>
+                </div>
+                <div class="up-progress" :class="{ 'up-processing': upProcessing }" v-if="upBusy || upProcessing">
+                  <div class="up-progress-bar" :style="{width: upProgress + '%'}"></div>
+                  <span class="up-progress-text mono">{{ upProcessing ? '处理中…' : (upProgress + '%') }}</span>
+                </div>
+                <div class="uc-actions auto">
+                  <button class="btn" @click="$refs.upInput.click()"
+                          :disabled="upBusy || upProcessing || serverStatus.running || mailState.building">
+                    {{ upBusy ? '上传中…' : (upProcessing ? '处理中…' : '上传补丁') }}
+                  </button>
+                  <button class="btn btn-del" @click="doSetBaseline"
+                          :disabled="upBusy || upProcessing || baselineBusy">
+                    {{ baselineBusy ? '处理中…' : '将当前版本设置为基线版本' }}
+                  </button>
+                  <input type="file" accept=".zip" hidden ref="upInput"
+                         :disabled="upBusy || upProcessing || serverStatus.running || mailState.building"
+                         @change="onUpFileChange($event)">
+                </div>
+              </div>
+
+              <div class="data-card key-card">
+                <div class="uc-head">
+                  <span class="sc-title">认证密钥</span>
+                </div>
+                <div class="up-info mono" v-if="keyInfo">
+                  <div>上次生成密钥对：{{ keyInfo.private.mtime || '—' }}</div>
+                </div>
+                <textarea class="key-pem mono" readonly rows="6" spellcheck="false"
+                          v-if="keyInfo" :value="keyInfo.public_pem"
+                          placeholder="暂无公钥"></textarea>
+                <div class="uc-actions auto">
+                  <button class="btn" @click="doGenKeys"
+                          :disabled="keyBusy || serverStatus.running">
+                    {{ keyBusy ? '生成中…' : '生成新密钥对' }}
+                  </button>
+                  <button class="btn btn-warn" @click="downloadKey('public')"
+                          :disabled="keyBusy">
+                    下载公钥
+                  </button>
+                  <button class="btn btn-del" @click="downloadPrivateKey"
+                          :disabled="keyBusy">
+                    下载私钥
+                  </button>
+                </div>
+              </div>
+
+              <div class="data-card health-card">
+                <div class="uc-head">
+                  <span class="sc-title">系统健康</span>
+                </div>
+                <div class="health-rows mono" v-if="healthData && healthData.available">
+                  <div class="health-row">
+                    <span class="health-label">CPU 负载</span>
+                    <span class="health-val" :class="cpuLevel()">{{ fmtPct(healthData.cpu_percent)
+                      }}<small class="health-peak" v-if="healthData.cpu_peak !== null">峰值 {{ fmtPct(healthData.cpu_peak) }}</small></span>
+                  </div>
+                  <div class="health-row">
+                    <span class="health-label">内存使用</span>
+                    <span class="health-val" :class="memLevel()">{{ fmtMB(healthData.mem_used) }} / {{ fmtMB(healthData.mem_total)
+                      }}<small class="health-peak" v-if="healthData.mem_peak !== null">峰值 {{ fmtMB(healthData.mem_peak) }}</small></span>
+                  </div>
+                  <div class="health-row">
+                    <span class="health-label">磁盘余量</span>
+                    <span class="health-val" :class="diskLevel()">{{ fmtGB(healthData.disk_free) }} / {{ fmtGB(healthData.disk_total) }}</span>
+                  </div>
+                </div>
+                <div class="up-info" v-else-if="healthData && !healthData.available">
+                  <div>{{ healthData.reason || '当前平台不支持' }}</div>
+                </div>
+                <div class="up-info" v-else>
+                  <div>读取中…</div>
+                </div>
+                <div class="up-info mono" v-if="healthData && healthData.available">
+                  <div>峰值自 {{ healthData.since || '—' }} 累计 · 每 2 秒刷新</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 管理员配置（仅超级管理员） -->
+        <section v-if="tab === 'admins' && sessionInfo.is_super">
+          <div class="card-grid server-grid">
+            <div class="data-card">
+              <div class="uc-head">
+                <span class="sc-title">管理员列表</span>
+                <div class="toolbar-right">
+                  <button class="btn" @click="openAdminModal" :disabled="adminBusy">
+                    添加管理员
+                  </button>
+                </div>
+              </div>
+              <div class="admin-list">
+                <div class="admin-row" v-for="a in adminItems" :key="a.username">
+                  <span class="mono admin-name">{{ a.username }}</span>
+                  <span class="tag admin" v-if="a.is_super">超管</span>
+                  <span class="admin-time mono">{{ a.created_at }}</span>
+                  <button class="btn btn-del admin-del"
+                          @click="doDeleteAdmin(a)"
+                          :disabled="adminBusy || a.is_super">
+                    删除
+                  </button>
+                </div>
+                <div class="grid-empty" v-if="adminItems.length === 0">暂无管理员</div>
+              </div>
+            </div>
+          </div>
+        </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- 修改密码对话框（入口在侧栏底部） -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="pwdModal.visible" @click.self="pwdModal.visible = false">
+        <div class="modal">
+          <h3>修改我的密码</h3>
+          <form @submit.prevent="doChangePassword">
+            <label>原密码
+              <input type="password" v-model="cpOld" autocomplete="current-password" required autofocus>
+            </label>
+            <label>新密码 <small>8~32 位字母、数字、符号</small>
+              <input type="password" v-model="cpNew" autocomplete="new-password" required>
+            </label>
+            <label>确认新密码
+              <input type="password" v-model="cpConfirm" autocomplete="new-password" required>
+            </label>
+            <div class="modal-actions">
+              <button class="btn-ghost" type="button" @click="pwdModal.visible = false">取消</button>
+              <button class="btn" type="submit" :disabled="cpBusy">
+                {{ cpBusy ? '提交中…' : '确认修改' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 充值对话框 -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="rechargeTarget" @click.self="rechargeTarget = null">
+        <div class="modal">
+          <h3>点券充值</h3>
+          <p>账号 <b>{{ rechargeTarget.accountname }}</b>（UID {{ rechargeTarget.uid }}），
+             当前点券 <b class="mono">{{ rechargeTarget.cera.toLocaleString() }}</b></p>
+          <label>充值数量（正数充值，负数扣减）</label>
+          <input v-model.trim="rechargeAmount" placeholder="例如 10000 或 -5000" autofocus>
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="rechargeTarget = null">取消</button>
+            <button class="btn" :disabled="rechargeBusy" @click="doRecharge">
+              {{ rechargeBusy ? '提交中…' : '确认' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 重置密码结果对话框 -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="resetResult" @click.self="resetResult = null">
+        <div class="modal">
+          <h3>密码已重置</h3>
+          <p>账号 <b>{{ resetResult.username }}</b>（UID {{ resetResult.uid }}）的新密码：</p>
+          <div class="pwd-box mono" @click="copyPassword" title="点击复制">{{ resetResult.new_password }}</div>
+          <p class="hint">请立即复制并告知用户，该密码仅显示一次。</p>
+          <div class="modal-actions">
+            <button class="btn" @click="copyPassword">复制</button>
+            <button class="btn-ghost" @click="resetResult = null">关闭</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 通用确认对话框（替代原生 confirm） -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="confirmBox.visible" @click.self="onConfirmCancel">
+        <div class="modal">
+          <h3>{{ confirmBox.title }}</h3>
+          <p class="modal-text">{{ confirmBox.text }}</p>
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="onConfirmCancel">取消</button>
+            <button class="btn" :class="confirmBox.danger ? 'btn-del' : ''" @click="onConfirmOk">
+              确认
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 添加管理员对话框 -->
+    <transition name="modal">
+      <div class="modal-mask" v-if="adminModal.visible" @click.self="adminModal.visible = false">
+        <div class="modal">
+          <h3>添加管理员</h3>
+          <label>账号</label>
+          <input v-model.trim="newAdminName" placeholder="3~32 位字母、数字、下划线" autofocus>
+          <label>密码</label>
+          <input type="password" v-model="newAdminPass" placeholder="8~32 位字母、数字、符号"
+                 @keyup.enter="doAddAdmin">
+          <div class="modal-actions">
+            <button class="btn-ghost" @click="adminModal.visible = false">取消</button>
+            <button class="btn" :disabled="adminBusy || !newAdminName || !newAdminPass"
+                    @click="doAddAdmin">
+              {{ adminBusy ? '提交中…' : '添加' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 全局提示 -->
+    <transition name="fade">
+      <div class="toast" v-if="toast" :class="toast.type">{{ toast.text }}</div>
+    </transition>
+  </div>
+
+  <script src="assets/vue.global.prod.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
